@@ -77,8 +77,24 @@ function fetchXmlAndMakeJson(url: string, path: string): void {
     });
 }
 
+import { openapi_key } from "./keys.ts"
+const pages = 1;
+const rows = 8192;
+const keco_url = 'http://open.ev.or.kr:8080/openapi/services/rest/EvChargerService';
+const kepco_url = 'http://openapi.kepco.co.kr/service/EvInfoServiceV2/getEvSearchList';
+
+let keco_query = '?' + encodeURIComponent('serviceKey') + '=' + openapi_key;
+let kepco_query = '?' + encodeURIComponent('serviceKey') + '=' + openapi_key;
+kepco_query += '&' + encodeURIComponent('pageNo') + '=' + encodeURIComponent(pages);
+kepco_query += '&' + encodeURIComponent('numOfRows') + '=' + encodeURIComponent(rows);
+
+fetchXmlAndMakeJson(kepco_url+kepco_query, "./kepco.json");
+fetchXmlAndMakeJson(keco_url+keco_query, "./keco.json");
+
+/*
 const xmlStr = Deno.readTextFile("./test_evc_list.xml");
 xmlStr.then(str => {
     console.log(str);
     console.log(xmlStrToObj(str));
 });
+*/
