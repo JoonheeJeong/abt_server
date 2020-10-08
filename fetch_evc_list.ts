@@ -2,8 +2,15 @@ interface LooseObject {
     [key: string]: any
 }
 
-function xmlStrToObj(str: string): object {
-    let items: LooseObject[] = [];
+let items: LooseObject[] = [];
+
+function getTotalCount(str: string): number {
+    const beg = str.indexOf("<totalCount>") + 12;
+    const end = str.indexOf("<", beg);
+    return parseInt(str.substring(beg, end));
+}
+
+function xmlStrToObj(str: string): void {
     let item: LooseObject = {};
     let i = str.indexOf("<item>");
     let beg: number;
@@ -45,15 +52,27 @@ L1:
             item[tagName] = val;
         }
     }
-    return items;
 }
 
-async function fetchXml(url: string): Promise<object> {
-    let res =  await fetch(url);
+async function fetchXml(url: string, pageNo = 1, end = 2) {
+    if (pageNo === end) {
+        console.log("fetchXml end");
+        return;
+    }
+    const complete_url = url + encodeURIComponent(pageNo);
+    let res =  await fetch(complete_url);
+    console.log(`Fetch attempt for "${complete_url}" finished.`);
     if (!res.ok)
         throw new Error(`HTTP Error! status: ${res.status}`);
-    else
-        return res.text().then(str => xmlStrToObj(str)); 
+    let str = await res.text();
+    if (pageNo == 1) {
+        const totalCount = getTotalCount(str);
+        end += Math.floor(totalCount / pageSize);
+        if (totalCount % pageSize == 0)
+            end--;
+    }
+    xmlStrToObj(str);
+    await fetchXml(url, pageNo+1, end);
 }
 
 function writeJson(path: string, data: object): string {
@@ -66,29 +85,26 @@ function writeJson(path: string, data: object): string {
 }
 
 function fetchXmlAndMakeJson(url: string, path: string): void {
-    fetchXml(url).then(data => {
-        console.log(writeJson(path, data)); 
+    fetchXml(url).then(() => {
+        console.log(`items.length: ${items.length}`);
+        console.log(writeJson(path, items)); 
     })
     .catch(e => {
         console.log(`An error occurs "${url}": ` + e.message);
     })
     .finally(() => {
-        console.log(`Fetch attempt for "${url}" finished.`);
+        console.log("All attempts to fetch and write finished.");
     });
 }
 
-import { openapi_key } from "./keys.ts"
-const pages = 1;
-const rows = 8192;
-const keco_url = 'http://open.ev.or.kr:8080/openapi/services/rest/EvChargerService';
-const kepco_url = 'http://openapi.kepco.co.kr/service/EvInfoServiceV2/getEvSearchList';
+import { openapi_key } from "./private/keys.ts"
+const pageSize = 2000;
+const keco_url = 'http://open.ev.or.kr:8080/openapi/services/EvCharger/getChargerInfo';
 
 let keco_query = '?' + encodeURIComponent('serviceKey') + '=' + openapi_key;
-let kepco_query = '?' + encodeURIComponent('serviceKey') + '=' + openapi_key;
-kepco_query += '&' + encodeURIComponent('pageNo') + '=' + encodeURIComponent(pages);
-kepco_query += '&' + encodeURIComponent('numOfRows') + '=' + encodeURIComponent(rows);
+keco_query += '&' + encodeURIComponent('pageSize') + '=' + encodeURIComponent(pageSize);
+keco_query += '&' + encodeURIComponent('pageNo') + '=';
 
-fetchXmlAndMakeJson(kepco_url+kepco_query, "./kepco.json");
 fetchXmlAndMakeJson(keco_url+keco_query, "./keco.json");
 
 /*
