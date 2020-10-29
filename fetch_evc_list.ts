@@ -13,16 +13,35 @@ function getTotalCount(str: string): number {
 function xmlStrToObj(str: string): void {
     let item: LooseObject = {};
     let i = str.indexOf("<item>");
+    // console.log(str.substring(i+6, str.indexOf("</item>", i)))
     let beg: number;
     let end: number;
+    let next_end: number;
     let tagName: string = "dummy";
 L1:
     while (true) {
         if (str[i] === "<") {
-            beg = i+1;
-            end = str.indexOf(">", beg);
-            i = end+1;
+            beg = i+1;                                // tag name begin
+            end = str.indexOf(">", beg);              // tag name end
+            i = end+1;                                // new tag or text begin
             tagName = str.substring(beg, end);
+
+            // null text (powerType, note)
+            next_end = str.indexOf(">", i);
+            if (tagName === str.substring(i+2, next_end)) { 
+                item[tagName] = "";
+                i = next_end + 1;
+                continue;
+            }
+
+            /*
+            if (tagName.endsWith("/")) {              // ex) powerType/ note/
+                tagName = tagName.slice(0, -1);
+                item[tagName] = "";
+                continue;
+            }
+            */
+
             switch (tagName) {
                 case "/items":
                     break L1;
@@ -36,14 +55,22 @@ L1:
                     break;
             }
         } else {
-            beg = i;
-            end = str.indexOf("<", beg);
-            i = str.indexOf("<", end+1);
-            const text: string = str.substring(beg, end);
+            beg = i;                                  // text begin
+            end = str.indexOf("<", beg);              // text end
+            i = str.indexOf("<", end+1);              // new tag begin
+            const text = str.substring(beg, end);
             let val: any;
             switch (tagName) {
-                case "lat": case "lng": case "longi":
+                case "lat": 
+                case "lng":
                     val = parseFloat(text);
+                    break;
+                case "stat": 
+                case "zcode":
+                    val = parseInt(text);
+                    break;
+                case "parkingFree":
+                    val = (text === "Y") ? true : false;
                     break;
                 default:
                     val = text;
@@ -65,14 +92,16 @@ async function fetchXml(url: string, pageNo = 1, end = 2) {
     if (!res.ok)
         throw new Error(`HTTP Error! status: ${res.status}`);
     let str = await res.text();
+    /*
     if (pageNo == 1) {
         const totalCount = getTotalCount(str);
         end += Math.floor(totalCount / pageSize);
         if (totalCount % pageSize == 0)
             end--;
     }
+    */
     xmlStrToObj(str);
-    await fetchXml(url, pageNo+1, end);
+    // await fetchXml(url, pageNo+1, end);
 }
 
 function writeJson(path: string, data: object): string {
