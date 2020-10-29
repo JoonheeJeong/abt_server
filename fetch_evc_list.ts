@@ -65,6 +65,8 @@ L1:
                 case "lng":
                     val = parseFloat(text);
                     break;
+                case "chgerId":
+                case "chgerType":
                 case "stat": 
                 case "zcode":
                     val = parseInt(text);
