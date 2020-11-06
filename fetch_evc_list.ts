@@ -13,7 +13,6 @@ function getTotalCount(str: string): number {
 function xmlStrToObj(str: string): void {
     let item: LooseObject = {};
     let i = str.indexOf("<item>");
-    // console.log(str.substring(i+6, str.indexOf("</item>", i)))
     let beg: number;
     let end: number;
     let next_end: number;
@@ -51,7 +50,7 @@ L1:
                 case "/item":
                     items.push(item);
                     break;
-                defaut:
+                default:
                     break;
             }
         } else {
@@ -94,16 +93,14 @@ async function fetchXml(url: string, pageNo = 1, end = 2) {
     if (!res.ok)
         throw new Error(`HTTP Error! status: ${res.status}`);
     let str = await res.text();
-    /*
     if (pageNo == 1) {
         const totalCount = getTotalCount(str);
         end += Math.floor(totalCount / pageSize);
         if (totalCount % pageSize == 0)
             end--;
     }
-    */
     xmlStrToObj(str);
-    // await fetchXml(url, pageNo+1, end);
+    await fetchXml(url, pageNo+1, end);
 }
 
 function writeJson(path: string, data: object): string {
@@ -128,8 +125,8 @@ function fetchXmlAndMakeJson(url: string, path: string): void {
     });
 }
 
-import { openapi_key } from "./private/keys.ts"
-const pageSize = 2000;
+import { openapi_key } from "./abt_private/keys.ts"
+const pageSize = 10000;
 const keco_url = 'http://open.ev.or.kr:8080/openapi/services/EvCharger/getChargerInfo';
 
 let keco_query = '?' + encodeURIComponent('serviceKey') + '=' + openapi_key;
